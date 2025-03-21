@@ -1,0 +1,149 @@
+// Define pins for the ultrasonic sensors
+#define TRIG_LEFT A2
+#define ECHO_LEFT A5
+#define TRIG_FRONT 11
+#define ECHO_FRONT 10
+#define TRIG_RIGHT A3
+#define ECHO_RIGHT A4
+
+// Define pins for the motor driver
+#define ENA 6    // Enable pin for Motor A
+#define IN1 8    // Motor A forward
+#define IN2 9    // Motor A backward
+#define ENB 5    // Enable pin for Motor B
+#define IN3 3    // Motor B forward
+#define IN4 4    // Motor B backward
+
+// Function to measure distance using an ultrasonic sensor
+long getDistance(int trigPin, int echoPin) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    long duration = pulseIn(echoPin, HIGH);
+    return duration * 0.034 / 2; // Convert to cm
+}
+ 
+void stopLeftMotor() {  // stops the left motor
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+}
+
+void stopRightMotor() {  // stops the right motor
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, LOW);
+}
+
+void moveLeftMotor() { // Moves the left motor forward
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    analogWrite(ENA, 1);
+}
+
+void moveRightMotor() { // Moves the right motor forward
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+    analogWrite(ENB, 1);
+}
+
+void moveRightMotorBack (){
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENB, 1);
+}
+
+void moveLeftMotorBack (){
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, 1);
+}
+// Setup function
+void setup() {
+    pinMode(TRIG_LEFT, OUTPUT);
+    pinMode(ECHO_LEFT, INPUT);
+    pinMode(TRIG_FRONT, OUTPUT);
+    pinMode(ECHO_FRONT, INPUT);
+    pinMode(TRIG_RIGHT, OUTPUT);
+    pinMode(ECHO_RIGHT, INPUT);
+
+    pinMode(ENA, OUTPUT);
+    pinMode(IN1, OUTPUT);
+    pinMode(IN2, OUTPUT);
+    pinMode(ENB, OUTPUT);
+    pinMode(IN3, OUTPUT);
+    pinMode(IN4, OUTPUT);
+
+    Serial.begin(9600);
+}
+
+// Main loop
+void loop() {
+    long distLeft = getDistance(TRIG_LEFT, ECHO_LEFT);
+    long distFront = getDistance(TRIG_FRONT, ECHO_FRONT);
+    long distRight = getDistance(TRIG_RIGHT, ECHO_RIGHT);
+
+    Serial.print("Left: ");
+    Serial.print(distLeft);
+    Serial.print(" cm | Front: ");
+    Serial.print(distFront);
+    Serial.print(" cm | Right: ");
+    Serial.print(distRight);
+    Serial.println(" cm");
+    delay(100); // Small delay for stability
+
+    if (distFront >= 10)
+    {
+      moveRightMotor();
+      moveLeftMotor();
+      if (distLeft < 4)
+      {
+          stopRightMotor();
+          moveLeftMotor();
+          delay (200);
+          stopLeftMotor();
+      }
+      else if (distRight < 4)
+      {
+          stopLeftMotor();
+          moveRightMotor();
+          delay (200);
+          stopRightMotor();
+      }
+    }
+    else
+    {
+      moveRightMotorBack();
+      moveLeftMotorBack();
+      delay (200);
+      stopRightMotor();
+      stopLeftMotor();
+      delay (2000);
+      if (distRight > distLeft)
+      {
+        while (getDistance(TRIG_FRONT, ECHO_FRONT) < 13)
+        {
+            moveLeftMotor();
+            moveRightMotorBack();
+        }
+        moveLeftMotorBack();
+        moveRightMotor();
+        delay (100);
+        stopRightMotor();
+        stopLeftMotor();
+      }
+      else if (distRight < distLeft)
+      {
+        while (getDistance(TRIG_FRONT, ECHO_FRONT) < 13)
+        {
+            moveRightMotor();
+            moveLeftMotorBack(); 
+        }
+        moveRightMotorBack();
+        moveLeftMotor();
+        delay (100);
+        stopRightMotor();
+        stopLeftMotor();
+      }
+    }
+}
